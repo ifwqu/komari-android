@@ -1,184 +1,87 @@
 package com.komari.app
 
-import android.annotation.SuppressLint
-import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.view.KeyEvent
-import android.view.View
-import android.view.MenuItem
-import android.webkit.CookieManager
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.ProgressBar
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.appbar.MaterialToolbar
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.komari.app.ui.NodeDetailScreen
+import com.komari.app.ui.NodeListScreen
+import com.komari.app.ui.ServerEditScreen
+import com.komari.app.ui.ServerListScreen
+import com.komari.app.ui.theme.KomariTheme
 
-class MainActivity : AppCompatActivity() {
-
-    companion object {
-        const val PREFS_NAME = "komari"
-        const val KEY_SERVER_URL = "server_url"
-    }
-
-    private lateinit var webView: WebView
-    private lateinit var progressBar: ProgressBar
-    private var serverUrl: String = ""
-
-    @SuppressLint("SetJavaScriptEnabled")
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContent {
+            KomariTheme {
+                AppNav()
+            }
+        }
+    }
+}
 
-        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
-        toolbar.inflateMenu(R.menu.main_menu)
-        toolbar.setOnMenuItemClickListener { item -> handleMenu(item) }
+@Composable
+fun AppNav() {
+    val navController = rememberNavController()
 
-        progressBar = findViewById(R.id.progressBar)
-        webView = findViewById(R.id.webView)
+    NavHost(navController = navController, startDestination = "servers") {
 
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        serverUrl = prefs.getString(KEY_SERVER_URL, null) ?: ""
-
-        // 首次启动：先配置服务器地址
-        if (serverUrl.isBlank()) {
-            startActivity(Intent(this, SettingsActivity::class.java))
-            finish()
-            return
+        composable("servers") {
+            ServerListScreen(
+                onAddServer = { navController.navigate("edit") },
+                onEditServer = { id -> navController.navigate("edit/$id") },
+                onOpenServer = { id -> navController.navigate("nodes/$id") }
+            )
         }
 
-        val settings = webView.settings
-        settings.javaScriptEnabled = true
-        settings.domStorageEnabled = true
-        settings.databaseEnabled = true
-        settings.loadWithOverviewMode = true
-        settings.useWideViewPort = true
-        settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-
-        CookieManager.getInstance().setAcceptCookie(true)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
+        composable("edit") {
+            ServerEditScreen(serverId = null, onBack = { navController.popBackStack() })
         }
 
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                val host = Uri.parse(serverUrl).host
-                // 站内链接留在 WebView 打开，外部链接交给系统浏览器
-                if (request.url.host == host) return false
-                return try {
-                    startActivity(Intent(Intent.ACTION_VIEW, request.url))
-                    true
-                } catch (_: Exception) {
-                    webView.loadUrl(request.url.toString())
-                    true
+        composable(
+            route = "edit/{serverId}",
+            arguments = listOf(navArgument("serverId") { type = NavType.StringType })
+        ) { entry ->
+            ServerEditScreen(
+                serverId = entry.arguments?.getString("serverId"),
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "nodes/{serverId}",
+            arguments = listOf(navArgument("serverId") { type = NavType.StringType })
+        ) { entry ->
+            val serverId = entry.arguments?.getString("serverId").orEmpty()
+            NodeListScreen(
+                serverId = serverId,
+                onBack = { navController.popBackStack() },
+                onOpenNode = { nodeId, name ->
+                    navController.navigate("detail/$serverId/$nodeId?name=${Uri.encode(name)}")
                 }
-            }
-
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                progressBar.visibility = View.VISIBLE
-                progressBar.progress = 0
-            }
-
-            override fun onPageFinished(view: WebView?, url: String?) {
-                progressBar.visibility = View.GONE
-            }
-
-            override fun onReceivedError(
-                view: WebView?,
-                request: WebResourceRequest?,
-                error: WebResourceError?
-            ) {
-                if (request?.isForMainFrame == true) {
-                    val desc = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        error?.description?.toString() ?: ""
-                    } else {
-                        ""
-                    }
-                    Toast.makeText(this@MainActivity, getString(R.string.load_failed, desc), Toast.LENGTH_LONG).show()
-                }
-            }
+            )
         }
 
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                progressBar.progress = newProgress
-            }
+        composable(
+            route = "detail/{serverId}/{nodeId}?name={name}",
+            arguments = listOf(
+                navArgument("serverId") { type = NavType.StringType },
+                navArgument("nodeId") { type = NavType.StringType },
+                navArgument("name") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { entry ->
+            NodeDetailScreen(
+                serverId = entry.arguments?.getString("serverId").orEmpty(),
+                nodeId = entry.arguments?.getString("nodeId").orEmpty(),
+                onBack = { navController.popBackStack() }
+            )
         }
-
-        webView.setDownloadListener { url, _, _, _, _ ->
-            try {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-            } catch (_: Exception) {
-                Toast.makeText(this@MainActivity, R.string.download_failed, Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        if (savedInstanceState != null) {
-            webView.restoreState(savedInstanceState)
-        } else {
-            webView.loadUrl(serverUrl)
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // 从设置页返回后，若地址有变化则重新加载
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val current = prefs.getString(KEY_SERVER_URL, null) ?: ""
-        if (current.isNotBlank() && current != serverUrl) {
-            serverUrl = current
-            webView.loadUrl(serverUrl)
-        }
-    }
-
-    private fun handleMenu(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_refresh -> {
-                webView.reload()
-                true
-            }
-            R.id.action_settings -> {
-                confirmChangeServer()
-                true
-            }
-            else -> false
-        }
-    }
-
-    private fun confirmChangeServer() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.change_server)
-            .setMessage(R.string.change_server_confirm)
-            .setPositiveButton(R.string.ok) { _, _ ->
-                startActivity(Intent(this, SettingsActivity::class.java))
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
-            webView.goBack()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        webView.saveState(outState)
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-        webView.restoreState(savedInstanceState)
     }
 }

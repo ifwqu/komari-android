@@ -1,18 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Komari</string>
-    <string name="settings_title">设置服务器</string>
-    <string name="settings_hint">输入你的 Komari 服务器地址，例如：\nhttps://monitor.example.com\n或\nhttp://192.168.1.10:8443\n\nApp 会用 WebView 直接打开该地址的 Komari 监控界面。之后可在右上角菜单中重新设置。</string>
-    <string name="server_url_hint">服务器地址</string>
-    <string name="save">保存</string>
-    <string name="saved">已保存</string>
-    <string name="url_required">请输入服务器地址</string>
-    <string name="refresh">刷新</string>
-    <string name="settings">设置</string>
-    <string name="change_server">更换服务器</string>
-    <string name="change_server_confirm">确定要重新设置服务器地址吗？</string>
-    <string name="ok">确定</string>
-    <string name="cancel">取消</string>
-    <string name="load_failed">加载失败：%1$s</string>
-    <string name="download_failed">无法打开下载链接</string>
 </resources>
