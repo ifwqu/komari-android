@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="komari_purple">#A370F7</color>
+    <color name="komari_purple_dark">#7C4DDB</color>
+    <color name="komari_purple_light">#C9A6FF</color>
+    <color name="ic_launcher_background">#A370F7</color>
+</resources>

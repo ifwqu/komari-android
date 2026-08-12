@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Komari" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/komari_purple</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorSecondary">@color/komari_purple_light</item>
+        <item name="android:statusBarColor">@color/komari_purple_dark</item>
+    </style>
+</resources>
