@@ -8,9 +8,13 @@ import androidx.compose.ui.graphics.Color
 val KomariPurple = Color(0xFFA370F7)
 val KomariPurpleDark = Color(0xFF7C4DDB)
 val KomariPurpleLight = Color(0xFFC9A6FF)
-val KomariGreen = Color(0xFF4CAF50)
-val KomariRed = Color(0xFFE53935)
-val KomariBlue = Color(0xFF42A5F5)
+
+/** iOS 风格配色：浅灰分组背景 + 白色卡片 */
+val IosBackground = Color(0xFFF2F2F7)
+val IosCard = Color(0xFFFFFFFF)
+val IosSeparator = Color(0xFFE5E5EA)
+val IosGrayText = Color(0xFF8E8E93)
+val IosBlue = Color(0xFF007AFF)
 
 private val LightColors = lightColorScheme(
     primary = KomariPurple,
@@ -19,8 +23,13 @@ private val LightColors = lightColorScheme(
     onPrimaryContainer = Color(0xFF331260),
     secondary = KomariPurpleLight,
     onSecondary = Color(0xFF331260),
-    surface = Color(0xFFFDFBFF),
-    background = Color(0xFFF6F3FB)
+    surface = IosCard,
+    onSurface = Color(0xFF1C1C1E),
+    background = IosBackground,
+    onBackground = Color(0xFF1C1C1E),
+    surfaceVariant = IosBackground,
+    onSurfaceVariant = IosGrayText,
+    outline = IosSeparator
 )
 
 @Composable

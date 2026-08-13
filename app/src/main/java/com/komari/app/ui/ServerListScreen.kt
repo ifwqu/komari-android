@@ -113,20 +113,23 @@ fun ServerListScreen(
         if (servers.isEmpty()) {
             EmptyServers(Modifier.padding(padding).fillMaxSize(), onAdd = onAddServer)
         } else {
-            LazyColumn(
-                Modifier.padding(padding).fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(servers, key = { it.id }) { s ->
-                    val ok = status[s.id]
-                    ServerCard(
-                        server = s,
-                        sessionOk = ok,
-                        onOpen = { onOpenServer(s.id) },
-                        onEdit = { onEditServer(s.id) },
-                        onDelete = { deleting = s }
-                    )
+            Column(Modifier.padding(padding).fillMaxSize()) {
+                GroupHeader("服务器")
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(servers, key = { it.id }) { s ->
+                        val ok = status[s.id]
+                        ServerCard(
+                            server = s,
+                            sessionOk = ok,
+                            onOpen = { onOpenServer(s.id) },
+                            onEdit = { onEditServer(s.id) },
+                            onDelete = { deleting = s }
+                        )
+                    }
                 }
             }
         }

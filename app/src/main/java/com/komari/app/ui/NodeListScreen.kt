@@ -20,10 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -63,9 +62,9 @@ import com.komari.app.data.formatSpeed
 import com.komari.app.data.formatUptime
 import com.komari.app.data.parseSnapshot
 import com.komari.app.data.percentOf
+import com.komari.app.ui.theme.IosGrayText
 import com.komari.app.ui.theme.KomariBlue
 import com.komari.app.ui.theme.KomariGreen
-import com.komari.app.ui.theme.KomariPurple
 import com.komari.app.ui.theme.KomariRed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -81,8 +80,6 @@ import kotlin.math.roundToInt
 
 private enum class ServerTab(val label: String, val icon: ImageVector) {
     Nodes("节点", Icons.Default.List),
-    Themes("主题", Icons.Default.Star),
-    Plugins("插件", Icons.Default.Info),
     Settings("设置", Icons.Default.Settings)
 }
 
@@ -120,13 +117,20 @@ fun NodeListScreen(
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                 ServerTab.entries.forEach { t ->
                     NavigationBarItem(
                         selected = tab == t,
                         onClick = { tabName = t.name },
                         icon = { Icon(t.icon, contentDescription = t.label) },
-                        label = { Text(t.label) }
+                        label = { Text(t.label) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = Color.Transparent,
+                            unselectedIconColor = IosGrayText,
+                            unselectedTextColor = IosGrayText
+                        )
                     )
                 }
             }
@@ -135,8 +139,6 @@ fun NodeListScreen(
         val contentModifier = Modifier.padding(padding)
         when (tab) {
             ServerTab.Nodes -> NodeListContent(contentModifier, api, onOpenNode)
-            ServerTab.Themes -> ThemesAdmin(contentModifier, api)
-            ServerTab.Plugins -> PluginsAdmin(contentModifier, api)
             ServerTab.Settings -> SettingsTab(contentModifier, api)
         }
     }
@@ -194,6 +196,7 @@ private fun NodeListContent(
     }
 
     Column(modifier.fillMaxSize()) {
+        GroupHeader("节点")
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -275,18 +278,20 @@ private fun NodeCard(
                     }
                 }
                 if (report != null && isOnline) {
-                    UsageRing(
-                        percent = (report.cpu.usage).toFloat(),
-                        centerTop = "",
-                        slot = "CPU",
-                        size = 54.dp,
-                        strokeWidth = 8.dp
-                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "${report.cpu.usage.roundToInt()}%",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text("CPU", style = MaterialTheme.typography.labelSmall, color = IosGrayText)
+                    }
                 } else {
                     Text(
                         if (isOnline) "待数据" else "离线",
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (isOnline) KomariPurple else Color.Gray
+                        color = if (isOnline) MaterialTheme.colorScheme.primary else Color.Gray
                     )
                 }
             }
@@ -390,19 +395,21 @@ private fun BarRow(label: String, used: Long, total: Long, isOnline: Boolean) {
     }
 }
 
-/** 设置分组：节点管理 / 通知 / 站点设置 */
+/** 设置分组：节点管理 / 通知 / 主题 / 插件 / 站点设置 */
 @Composable
 private fun SettingsTab(modifier: Modifier, api: KomariApi) {
     var sub by remember { mutableStateOf<String?>(null) }
     Box(modifier.fillMaxSize()) {
         when (sub) {
             null -> Column(
-                Modifier.fillMaxSize().padding(16.dp),
+                Modifier.fillMaxSize().padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("管理分组", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                GroupHeader("管理")
                 SettingsEntry("节点管理", "添加 / 删除节点，复制部署令牌", { sub = "clients" })
                 SettingsEntry("通知", "节点离线提醒开关", { sub = "notifications" })
+                SettingsEntry("主题", "应用服务器上已安装的主题", { sub = "themes" })
+                SettingsEntry("插件", "启用 / 禁用插件", { sub = "plugins" })
                 SettingsEntry("站点设置", "查看服务器站点配置（只读）", { sub = "settings" })
             }
             "clients" -> Column(Modifier.fillMaxSize()) {
@@ -413,6 +420,14 @@ private fun SettingsTab(modifier: Modifier, api: KomariApi) {
                 SubHeader("通知") { sub = null }
                 NotificationsAdmin(Modifier.weight(1f), api)
             }
+            "themes" -> Column(Modifier.fillMaxSize()) {
+                SubHeader("主题") { sub = null }
+                ThemesAdmin(Modifier.weight(1f), api)
+            }
+            "plugins" -> Column(Modifier.fillMaxSize()) {
+                SubHeader("插件") { sub = null }
+                PluginsAdmin(Modifier.weight(1f), api)
+            }
             "settings" -> Column(Modifier.fillMaxSize()) {
                 SubHeader("站点设置") { sub = null }
                 SettingsAdmin(Modifier.weight(1f), api)
@@ -421,19 +436,34 @@ private fun SettingsTab(modifier: Modifier, api: KomariApi) {
     }
 }
 
+/** iOS 风格分组标题（灰色小字） */
+@Composable
+internal fun GroupHeader(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = IosGrayText,
+        modifier = modifier.padding(start = 20.dp, end = 16.dp, top = 8.dp, bottom = 2.dp)
+    )
+}
+
 @Composable
 private fun SettingsEntry(title: String, desc: String, onClick: () -> Unit) {
     Card(
-        Modifier.fillMaxWidth().clickable(onClick = onClick),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(2.dp))
-                Text(desc, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                if (desc.isNotEmpty()) {
+                    Text(desc, style = MaterialTheme.typography.bodySmall, color = IosGrayText)
+                }
             }
-            Icon(Icons.Default.Settings, contentDescription = null, tint = KomariPurple)
+            Text("›", style = MaterialTheme.typography.titleLarge, color = IosGrayText)
         }
     }
 }
