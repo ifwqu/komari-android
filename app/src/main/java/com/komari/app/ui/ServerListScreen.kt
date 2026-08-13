@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.komari.app.BuildConfig
 import com.komari.app.data.KomariApi
 import com.komari.app.data.MeResponse
 import com.komari.app.data.ServerStore
@@ -84,14 +85,21 @@ fun ServerListScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            Modifier
-                                .size(22.dp)
-                                .background(KomariPurple, CircleShape)
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .size(20.dp)
+                                    .background(KomariPurple, CircleShape)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Komari 监控", style = MaterialTheme.typography.titleLarge)
+                        }
+                        Text(
+                            "v${BuildConfig.VERSION_NAME}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Komari 监控")
                     }
                 }
             )

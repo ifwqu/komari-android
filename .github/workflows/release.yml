@@ -31,15 +31,27 @@ jobs:
       - name: Build release APK
         run: gradle assembleRelease --no-daemon
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: komari-apk-release
-          path: app/build/outputs/apk/release/*.apk
+      - name: Rename APK (komari-app-<version>.apk)
+        run: |
+          set -e
+          # 优先用标签名（如 v2.3.0 -> 2.3.0），否则回退到 gradle 的 versionName
+          REF="${GITHUB_REF_NAME#v}"
+          if [[ -z "$REF" || "$REF" == "$GITHUB_REF_NAME" ]]; then
+            REF=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts | head -n1)
+          fi
+          ls -la app/build/outputs/apk/release/
+          cp app/build/outputs/apk/release/app-release.apk "komari-app-${REF}.apk"
+          echo "Renamed to komari-app-${REF}.apk"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/*.apk
+          files: komari-app-*.apk
           generate_release_notes: true
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: komari-apk-release
+          path: komari-app-*.apk

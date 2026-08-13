@@ -17,7 +17,9 @@
 2. 打开 App → 右下角「+」→ 输入服务器地址（如 `https://monitor.example.com` 或 `http://192.168.1.10:8443`）、用户名、密码，如有 2FA 一并填写。
 3. 保存登录后即可查看节点列表，点击节点进入详情。
 
-> 当前版本为**调试签名** APK（可直接安装），上架应用商店前请配置正式签名（GitHub Secrets + keystore）。
+> 当前版本使用**仓库内置的正式签名密钥**（`keystore/` 目录）：每次构建 APK 签名一致，可以直接覆盖安装、无需卸载。该密钥用于个人测试与分发场景；如需公开发布/上架，请改用 GitHub Secrets（`KEYSTORE_B64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`），构建脚本已兼容环境变量方式。
+>
+> 构建产物命名：`komari-app-<版本号>.apk`（如 `komari-app-2.3.0.apk`）。
 
 ## 构建与发布
 
