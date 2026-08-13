@@ -464,7 +464,15 @@ private fun PluginsAdmin(modifier: Modifier, api: KomariApi) {
                                     scope.launch {
                                         api.setPluginEnabled(short, target)
                                             .onSuccess {
-                                                plugins = plugins.map { if (it["short"]?.jsonPrimitive?.contentOrNull == short) it + ("enabled" to kotlinx.serialization.json.JsonPrimitive(target)) else it }
+                                                plugins = plugins.map { p ->
+                                                    if (p["short"]?.jsonPrimitive?.contentOrNull == short) {
+                                                        kotlinx.serialization.json.JsonObject(
+                                                            p.toMutableMap().apply {
+                                                                put("enabled", kotlinx.serialization.json.JsonPrimitive(target))
+                                                            }
+                                                        )
+                                                    } else p
+                                                }
                                             }
                                             .onFailure { Toast.makeText(context, "操作失败：${it.message}", Toast.LENGTH_SHORT).show() }
                                         toggling = null
