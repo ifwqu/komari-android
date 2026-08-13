@@ -49,10 +49,10 @@ import com.komari.app.data.KomariApi
 import com.komari.app.data.RecordsResponse
 import com.komari.app.data.Report
 import com.komari.app.data.ServerStore
-import com.komari.app.data.WsEnvelope
 import com.komari.app.data.formatBytes
 import com.komari.app.data.formatSpeed
 import com.komari.app.data.formatUptime
+import com.komari.app.data.parseSnapshot
 import com.komari.app.data.percentOf
 import com.komari.app.ui.theme.KomariBlue
 import com.komari.app.ui.theme.KomariGreen
@@ -109,13 +109,9 @@ fun NodeDetailScreen(
         var ws: WebSocket? = null
         ws = api.connectWs(object : WebSocketListener() {
             override fun onMessage(webSocket: WebSocket, text: String) {
-                val env = runCatching { api.json.decodeFromString<WsEnvelope>(text) }.getOrNull()
-                    ?: return
-                if (env.status != "success" || env.data == null) return
-                val d = env.data
-                isOnline = d.online.contains(nodeId)
-                val rep = d.data[nodeId]
-                if (rep != null) report = rep
+                val snap = parseSnapshot(text) ?: return
+                isOnline = snap.online.contains(nodeId)
+                snap.reports[nodeId]?.let { report = it }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {

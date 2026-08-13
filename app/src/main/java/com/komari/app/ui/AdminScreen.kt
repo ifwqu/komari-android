@@ -76,102 +76,11 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.util.Locale
 
-private enum class AdminPage(val title: String) {
-    Menu("管理"),
-    Clients("节点管理"),
-    Themes("主题"),
-    Plugins("插件"),
-    Notifications("通知"),
-    Settings("站点设置")
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AdminScreen(serverId: String, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val server = remember(serverId) { ServerStore.get(context, serverId) }
-    val api = remember(server) { server?.let { KomariApi(it) } }
-    var page by remember { mutableStateOf(AdminPage.Menu) }
-
-    if (api == null) {
-        Scaffold(topBar = { TopAppBar(title = { Text("管理") }, navigationIcon = { BackIcon { onBack() } }) }) { p ->
-            Box(Modifier.padding(p).fillMaxSize(), contentAlignment = Alignment.Center) { Text("服务器配置不存在") }
-        }
-        return
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(page.title) },
-                navigationIcon = {
-                    BackIcon {
-                        if (page == AdminPage.Menu) onBack() else page = AdminPage.Menu
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        when (page) {
-            AdminPage.Menu -> AdminMenu(
-                modifier = Modifier.padding(padding),
-                onOpen = { page = it }
-            )
-            AdminPage.Clients -> ClientsAdmin(Modifier.padding(padding), api)
-            AdminPage.Themes -> ThemesAdmin(Modifier.padding(padding), api)
-            AdminPage.Plugins -> PluginsAdmin(Modifier.padding(padding), api)
-            AdminPage.Notifications -> NotificationsAdmin(Modifier.padding(padding), api)
-            AdminPage.Settings -> SettingsAdmin(Modifier.padding(padding), api)
-        }
-    }
-}
-
-@Composable
-private fun BackIcon(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-    }
-}
-
-/* ---------------- 菜单 ---------------- */
-
-@Composable
-private fun AdminMenu(modifier: Modifier, onOpen: (AdminPage) -> Unit) {
-    val items = listOf(
-        Triple(AdminPage.Clients, "节点管理", "添加 / 删除节点，查看部署令牌"),
-        Triple(AdminPage.Themes, "主题", "应用服务器上已安装的主题"),
-        Triple(AdminPage.Plugins, "插件", "启用 / 禁用插件"),
-        Triple(AdminPage.Notifications, "通知", "节点离线提醒开关"),
-        Triple(AdminPage.Settings, "站点设置", "查看站点配置（只读）")
-    )
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items(items) { (page, title, desc) ->
-            Card(
-                Modifier.fillMaxWidth().clickable { onOpen(page) },
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(2.dp))
-                        Text(desc, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    }
-                    Icon(
-                        Icons.Default.Settings,
-                        contentDescription = null,
-                        tint = KomariPurple
-                    )
-                }
-            }
-        }
-    }
-}
-
 /* ---------------- 节点管理 ---------------- */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ClientsAdmin(modifier: Modifier, api: KomariApi) {
+fun ClientsAdmin(modifier: Modifier, api: KomariApi) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
@@ -338,7 +247,7 @@ private fun ClientsAdmin(modifier: Modifier, api: KomariApi) {
 /* ---------------- 主题 ---------------- */
 
 @Composable
-private fun ThemesAdmin(modifier: Modifier, api: KomariApi) {
+fun ThemesAdmin(modifier: Modifier, api: KomariApi) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var themes by remember { mutableStateOf<List<com.komari.app.data.ThemeInfo>>(emptyList()) }
@@ -405,7 +314,7 @@ private fun ThemesAdmin(modifier: Modifier, api: KomariApi) {
 /* ---------------- 插件 ---------------- */
 
 @Composable
-private fun PluginsAdmin(modifier: Modifier, api: KomariApi) {
+fun PluginsAdmin(modifier: Modifier, api: KomariApi) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var plugins by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
@@ -490,7 +399,7 @@ private fun PluginsAdmin(modifier: Modifier, api: KomariApi) {
 /* ---------------- 通知 ---------------- */
 
 @Composable
-private fun NotificationsAdmin(modifier: Modifier, api: KomariApi) {
+fun NotificationsAdmin(modifier: Modifier, api: KomariApi) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var nodes by remember { mutableStateOf<List<ClientInfo>>(emptyList()) }
@@ -566,7 +475,7 @@ private fun NotificationsAdmin(modifier: Modifier, api: KomariApi) {
 /* ---------------- 站点设置 ---------------- */
 
 @Composable
-private fun SettingsAdmin(modifier: Modifier, api: KomariApi) {
+fun SettingsAdmin(modifier: Modifier, api: KomariApi) {
     var data by remember { mutableStateOf<JsonObject?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }

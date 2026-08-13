@@ -10,7 +10,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.komari.app.ui.AdminScreen
 import com.komari.app.ui.NodeDetailScreen
 import com.komari.app.ui.NodeListScreen
 import com.komari.app.ui.ServerEditScreen
@@ -64,20 +63,9 @@ fun AppNav() {
             NodeListScreen(
                 serverId = serverId,
                 onBack = { navController.popBackStack() },
-                onOpenAdmin = { navController.navigate("admin/$serverId") },
                 onOpenNode = { nodeId, name ->
                     navController.navigate("detail/$serverId/$nodeId?name=${Uri.encode(name)}")
                 }
-            )
-        }
-
-        composable(
-            route = "admin/{serverId}",
-            arguments = listOf(navArgument("serverId") { type = NavType.StringType })
-        ) { entry ->
-            AdminScreen(
-                serverId = entry.arguments?.getString("serverId").orEmpty(),
-                onBack = { navController.popBackStack() }
             )
         }
 
