@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -59,9 +58,12 @@ import com.komari.app.data.KomariApi
 import com.komari.app.data.Report
 import com.komari.app.data.ServerStore
 import com.komari.app.data.formatBytes
+import com.komari.app.data.formatClock
 import com.komari.app.data.formatSpeed
+import com.komari.app.data.formatUptime
 import com.komari.app.data.parseSnapshot
 import com.komari.app.data.percentOf
+import com.komari.app.ui.theme.KomariBlue
 import com.komari.app.ui.theme.KomariGreen
 import com.komari.app.ui.theme.KomariPurple
 import com.komari.app.ui.theme.KomariRed
@@ -79,7 +81,6 @@ import kotlin.math.roundToInt
 
 private enum class ServerTab(val label: String, val icon: ImageVector) {
     Nodes("节点", Icons.Default.List),
-    Notifications("通知", Icons.Default.Notifications),
     Themes("主题", Icons.Default.Star),
     Plugins("插件", Icons.Default.Info),
     Settings("设置", Icons.Default.Settings)
@@ -134,7 +135,6 @@ fun NodeListScreen(
         val contentModifier = Modifier.padding(padding)
         when (tab) {
             ServerTab.Nodes -> NodeListContent(contentModifier, api, onOpenNode)
-            ServerTab.Notifications -> NotificationsAdmin(contentModifier, api)
             ServerTab.Themes -> ThemesAdmin(contentModifier, api)
             ServerTab.Plugins -> PluginsAdmin(contentModifier, api)
             ServerTab.Settings -> SettingsTab(contentModifier, api)
@@ -260,65 +260,98 @@ private fun NodeCard(
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(9.dp).background(if (isOnline) KomariGreen else Color(0xFFBDBDBD), CircleShape))
-                Spacer(Modifier.width(7.dp))
-                Text(
-                    node.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                val cpu = report?.cpu?.usage
-                Text(
-                    when {
-                        report == null -> "—"
-                        isOnline -> "${cpu?.roundToInt() ?: 0}%"
-                        else -> "离线"
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (report != null && isOnline) KomariPurple else Color.Gray
-                )
-            }
-
-            Spacer(Modifier.height(2.dp))
-            val meta = listOfNotNull(
-                node.os,
-                node.arch,
-                node.cpuName,
-                node.region
-            ).joinToString(" · ")
-            if (meta.isNotEmpty()) {
-                Text(meta, style = MaterialTheme.typography.bodySmall, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        node.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    val meta = listOfNotNull(node.os, node.arch).joinToString(" · ")
+                    if (meta.isNotEmpty()) {
+                        Text(meta, style = MaterialTheme.typography.labelSmall, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+                if (report != null && isOnline) {
+                    UsageRing(
+                        percent = (report.cpu.usage).toFloat(),
+                        centerTop = "",
+                        slot = "CPU",
+                        size = 54.dp,
+                        strokeWidth = 8.dp
+                    )
+                } else {
+                    Text(
+                        if (isOnline) "待数据" else "离线",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isOnline) KomariPurple else Color.Gray
+                    )
+                }
             }
 
             if (report != null) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(10.dp))
                 BarRow("内存", report.ram.used, report.ram.total, isOnline)
                 Spacer(Modifier.height(6.dp))
                 BarRow("磁盘", report.disk.used, report.disk.total, isOnline)
+                report.swap?.let { swap ->
+                    if (swap.total > 0) {
+                        Spacer(Modifier.height(6.dp))
+                        BarRow("Swap", swap.used, swap.total, isOnline)
+                    }
+                }
+
                 Spacer(Modifier.height(8.dp))
                 val net = report.network
                 val load = report.load
-                Text(
-                    buildString {
-                        if (net != null) {
-                            append("↓ ").append(formatSpeed(net.down)).append("  ↑ ").append(formatSpeed(net.up))
-                        }
-                        if (load != null) {
-                            append("    负载 ").append(String.format(Locale.getDefault(), "%.1f", load.load1))
-                        }
-                    }.trim(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.DarkGray,
-                    maxLines = 1
-                )
-            } else if (!isOnline) {
-                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth()) {
+                    InfoCell("下行", net?.let { formatSpeed(it.down) } ?: "—", KomariBlue)
+                    InfoCell("上行", net?.let { formatSpeed(it.up) } ?: "—", KomariPurple)
+                    InfoCell(
+                        "负载",
+                        load?.let { String.format(Locale.getDefault(), "%.2f / %.2f / %.2f", it.load1, it.load5, it.load15) } ?: "—",
+                        Color.DarkGray,
+                        modifier = Modifier.weight(1.4f)
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+                val conn = report.connections
+                Row(Modifier.fillMaxWidth()) {
+                    InfoCell("运行时长", formatUptime(report.uptime), Color.DarkGray)
+                    InfoCell("进程", report.process.toString(), Color.DarkGray)
+                    InfoCell(
+                        "连接",
+                        if (conn != null) "${conn.tcp + conn.udp}" else "—",
+                        Color.DarkGray
+                    )
+                    InfoCell("上报", formatClock(report.updatedAt), Color.Gray, modifier = Modifier.weight(1.3f))
+                }
+            } else if (isOnline) {
+                Spacer(Modifier.height(8.dp))
+                Text("等待实时数据…", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            } else {
+                Spacer(Modifier.height(8.dp))
                 Text("离线，暂无数据", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         }
+    }
+}
+
+@Composable
+private fun InfoCell(title: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    Column(modifier.padding(end = 10.dp)) {
+        Text(title, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Spacer(Modifier.height(1.dp))
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = color,
+            maxLines = 1
+        )
     }
 }
 
@@ -357,7 +390,7 @@ private fun BarRow(label: String, used: Long, total: Long, isOnline: Boolean) {
     }
 }
 
-/** 设置分组：节点管理 / 站点设置 */
+/** 设置分组：节点管理 / 通知 / 站点设置 */
 @Composable
 private fun SettingsTab(modifier: Modifier, api: KomariApi) {
     var sub by remember { mutableStateOf<String?>(null) }
@@ -369,11 +402,16 @@ private fun SettingsTab(modifier: Modifier, api: KomariApi) {
             ) {
                 Text("管理分组", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 SettingsEntry("节点管理", "添加 / 删除节点，复制部署令牌", { sub = "clients" })
+                SettingsEntry("通知", "节点离线提醒开关", { sub = "notifications" })
                 SettingsEntry("站点设置", "查看服务器站点配置（只读）", { sub = "settings" })
             }
             "clients" -> Column(Modifier.fillMaxSize()) {
                 SubHeader("节点管理") { sub = null }
                 ClientsAdmin(Modifier.weight(1f), api)
+            }
+            "notifications" -> Column(Modifier.fillMaxSize()) {
+                SubHeader("通知") { sub = null }
+                NotificationsAdmin(Modifier.weight(1f), api)
             }
             "settings" -> Column(Modifier.fillMaxSize()) {
                 SubHeader("站点设置") { sub = null }
