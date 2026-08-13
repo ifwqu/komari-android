@@ -129,7 +129,7 @@ fun NodeDetailScreen(
         }
         onDispose {
             scope.cancel()
-            ws.cancel()
+            ws?.cancel()
         }
     }
 
@@ -312,7 +312,7 @@ fun NodeDetailScreen(
                                     val pts = records.map { it.ramPercent?.toFloat() ?: percentOf(it.ram ?: 0L, it.ramTotal ?: 0L) }
                                     LineChart(pts, KomariPurple, maxOverride = 100f)
                                     Text(
-                                        "峰值 ${records.mapNotNull { it.ramPercent ?: percentOf(it.ram ?: 0L, it.ramTotal ?: 0L) }.maxOrNull()?.toInt() ?: "-"}%",
+                                        "峰值 ${records.mapNotNull { it.ramPercent?.toFloat() ?: percentOf(it.ram ?: 0L, it.ramTotal ?: 0L) }.maxOrNull()?.toInt() ?: "-"}%",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = Color.Gray
                                     )
