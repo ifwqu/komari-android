@@ -104,7 +104,8 @@ fun NodeDetailScreen(
 
     DisposableEffect(api, nodeId) {
         if (api == null) return@DisposableEffect onDispose {}
-        val scope = kotlinx.coroutines.CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val job = SupervisorJob()
+        val scope = kotlinx.coroutines.CoroutineScope(job + Dispatchers.Default)
         var ws: WebSocket? = null
         ws = api.connectWs(object : WebSocketListener() {
             override fun onMessage(webSocket: WebSocket, text: String) {
@@ -128,7 +129,7 @@ fun NodeDetailScreen(
             }
         }
         onDispose {
-            scope.cancel()
+            job.cancel()
             ws?.cancel()
         }
     }
