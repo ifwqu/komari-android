@@ -1,4 +1,6 @@
+import java.io.File
 import java.io.FileInputStream
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -41,10 +43,10 @@ android {
                     storeFile = keystoreFile
                 } else {
                     // 从环境变量解码 keystore 到构建目录（CI + GitHub Secrets 场景）
-                    val dir = java.io.File(project.buildDir, "signing")
+                    val dir = File(project.buildDir, "signing")
                     dir.mkdirs()
-                    val decoded = java.util.Base64.getDecoder().decode(keystoreEnvB64)
-                    storeFile = java.io.File(dir, "komari-release.jks").apply { writeBytes(decoded) }
+                    val decoded = Base64.getDecoder().decode(keystoreEnvB64)
+                    storeFile = File(dir, "komari-release.jks").apply { writeBytes(decoded) }
                 }
                 storePassword = secret("KEYSTORE_PASSWORD") ?: error("缺少 KEYSTORE_PASSWORD")
                 keyAlias = secret("KEY_ALIAS") ?: "komari"
