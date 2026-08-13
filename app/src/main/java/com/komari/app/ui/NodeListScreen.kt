@@ -65,6 +65,7 @@ import com.komari.app.data.percentOf
 import com.komari.app.ui.theme.IosGrayText
 import com.komari.app.ui.theme.KomariBlue
 import com.komari.app.ui.theme.KomariGreen
+import com.komari.app.ui.theme.KomariPurple
 import com.komari.app.ui.theme.KomariRed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

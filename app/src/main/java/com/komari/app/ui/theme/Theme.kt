@@ -8,6 +8,9 @@ import androidx.compose.ui.graphics.Color
 val KomariPurple = Color(0xFFA370F7)
 val KomariPurpleDark = Color(0xFF7C4DDB)
 val KomariPurpleLight = Color(0xFFC9A6FF)
+val KomariGreen = Color(0xFF4CAF50)
+val KomariRed = Color(0xFFE53935)
+val KomariBlue = Color(0xFF42A5F5)
 
 /** iOS 风格配色：浅灰分组背景 + 白色卡片 */
 val IosBackground = Color(0xFFF2F2F7)
