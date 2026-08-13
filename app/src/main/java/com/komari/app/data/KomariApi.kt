@@ -2,7 +2,10 @@ package com.komari.app.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
@@ -129,6 +132,120 @@ class KomariApi(val server: StoredServer) {
             .addHeader("Origin", baseUrl)
             .build()
         return httpClient.newWebSocket(req, listener)
+    }
+
+    /* ---------------- 管理端 ---------------- */
+
+    private fun jsonGet(path: String) = Request.Builder().url(buildUrl(path)).auth().get()
+
+    private fun jsonPost(path: String, body: String) =
+        Request.Builder().url(buildUrl(path)).auth().post(body.toRequestBody("application/json".toMediaType()))
+
+    /** 管理端：客户端完整列表（WithRaw，直接数组） */
+    suspend fun adminClients(): Result<List<ClientInfo>> {
+        val req = jsonGet("/api/admin/client/list").build()
+        return execute(req) { text, _ -> json.decodeFromString<List<ClientInfo>>(text) }
+    }
+
+    /** 管理端：添加客户端，可选名称 */
+    suspend fun adminAddClient(name: String?): Result<FlatAddResult> {
+        val body = if (name.isNullOrBlank()) "{}" else buildJsonObject { put("name", name) }.toString()
+        val req = jsonPost("/api/admin/client/add", body).build()
+        return execute(req) { text, resp ->
+            if (!resp.isSuccessful) throw Exception("HTTP ${resp.code}")
+            val r = json.decodeFromString<FlatAddResult>(text)
+            if (r.status == "success" && !r.uuid.isNullOrBlank()) r
+            else throw Exception("添加失败")
+        }
+    }
+
+    /** 管理端：删除客户端 */
+    suspend fun adminRemoveClient(uuid: String): Result<Unit> {
+        val req = jsonPost("/api/admin/client/$uuid/remove", "{}").build()
+        return execute(req) { text, _ ->
+            val env = json.decodeFromString<ApiEnvelope<JsonElement>>(text)
+            if (env.status != "success") throw Exception(env.message ?: "删除失败")
+        }
+    }
+
+    /** 管理端：获取客户端令牌（用于部署 agent） */
+    suspend fun adminClientToken(uuid: String): Result<String> {
+        val req = jsonGet("/api/admin/client/$uuid/token").build()
+        return execute(req) { text, _ ->
+            val r = json.decodeFromString<FlatTokenResult>(text)
+            if (r.status == "success" && r.token != null) r.token
+            else throw Exception("获取令牌失败")
+        }
+    }
+
+    /** 管理端：主题列表 */
+    suspend fun themes(): Result<List<ThemeInfo>> {
+        val req = jsonGet("/api/admin/theme/list").build()
+        return execute(req) { text, _ ->
+            val env = json.decodeFromString<ApiEnvelope<List<ThemeInfo>>>(text)
+            if (env.status == "success") env.data ?: emptyList()
+            else throw Exception(env.message ?: "获取主题失败")
+        }
+    }
+
+    /** 管理端：应用主题（short） */
+    suspend fun setTheme(short: String): Result<Unit> {
+        val req = jsonGet("/api/admin/theme/set?theme=${java.net.URLEncoder.encode(short, "UTF-8")}").build()
+        return execute(req) { text, _ ->
+            val env = json.decodeFromString<ApiEnvelope<JsonObject>>(text)
+            if (env.status != "success") throw Exception(env.message ?: "应用主题失败")
+        }
+    }
+
+    /** 管理端：插件列表（结构松散的 JSON 数组） */
+    suspend fun plugins(): Result<List<JsonObject>> {
+        val req = jsonGet("/api/admin/plugin/list").build()
+        return execute(req) { text, _ ->
+            val env = json.decodeFromString<ApiEnvelope<List<JsonObject>>>(text)
+            if (env.status == "success") env.data ?: emptyList()
+            else throw Exception(env.message ?: "获取插件失败")
+        }
+    }
+
+    /** 管理端：启用/禁用插件 */
+    suspend fun setPluginEnabled(short: String, enabled: Boolean): Result<Unit> {
+        val body = buildJsonObject { put("short", short); put("enabled", enabled) }.toString()
+        val req = jsonPost("/api/admin/plugin/enabled", body).build()
+        return execute(req) { text, _ ->
+            val env = json.decodeFromString<ApiEnvelope<JsonElement>>(text)
+            if (env.status != "success") throw Exception(env.message ?: "操作失败")
+        }
+    }
+
+    /** 管理端：离线通知列表 */
+    suspend fun offlineNotifications(): Result<List<OfflineNotification>> {
+        val req = jsonGet("/api/admin/notification/offline").build()
+        return execute(req) { text, _ ->
+            val env = json.decodeFromString<ApiEnvelope<List<OfflineNotification>>>(text)
+            if (env.status == "success") env.data ?: emptyList()
+            else throw Exception(env.message ?: "获取通知设置失败")
+        }
+    }
+
+    /** 管理端：启用/禁用指定客户端的离线通知（参数为 uuid 数组） */
+    suspend fun setOfflineNotification(uuids: List<String>, enable: Boolean): Result<Unit> {
+        val path = if (enable) "/api/admin/notification/offline/enable" else "/api/admin/notification/offline/disable"
+        val body = json.encodeToString(uuids)
+        val req = jsonPost(path, body).build()
+        return execute(req) { text, _ ->
+            val env = json.decodeFromString<ApiEnvelope<JsonElement>>(text)
+            if (env.status != "success") throw Exception(env.message ?: "操作失败")
+        }
+    }
+
+    /** 管理端：站点设置（只读展示） */
+    suspend fun adminSettings(): Result<JsonObject> {
+        val req = jsonGet("/api/admin/settings/").build()
+        return execute(req) { text, _ ->
+            val env = json.decodeFromString<ApiEnvelope<JsonObject>>(text)
+            if (env.status == "success") env.data ?: JsonObject(emptyMap())
+            else throw Exception(env.message ?: "获取设置失败")
+        }
     }
 
     private fun sessionFromSetCookieHeader(resp: Response): String? =

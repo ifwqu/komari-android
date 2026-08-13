@@ -178,3 +178,48 @@ data class StoredServer(
     val password: String,
     val sessionToken: String? = null
 )
+
+/* ---------------- 管理端（admin） ---------------- */
+
+/** 主题列表项（name 可能为本地化对象） */
+@Serializable
+data class ThemeInfo(
+    val short: String = "",
+    val name: kotlinx.serialization.json.JsonElement? = null,
+    val version: String? = null,
+    val author: String? = null,
+    val url: String? = null,
+    val description: kotlinx.serialization.json.JsonElement? = null
+) {
+    fun displayName(): String {
+        val el = name ?: return short
+        val prim = el as? kotlinx.serialization.json.JsonPrimitive
+        if (prim != null && prim.isString) return prim.content
+        val obj = el as? kotlinx.serialization.json.JsonObject ?: return short
+        val keys = listOf("zh", "zh-cn", "zh_cn", "en", "en-us").firstNotNullOfOrNull { obj[it]?.let { p -> (p as? kotlinx.serialization.json.JsonPrimitive)?.content } }
+        return keys ?: short
+    }
+}
+
+/** 离线通知配置 */
+@Serializable
+data class OfflineNotification(
+    val client: String = "",
+    val enable: Boolean = false,
+    @SerialName("grace_period") val gracePeriod: Int = 0
+)
+
+/** 添加客户端响应（WithFlat 平铺：{status, uuid, token}） */
+@Serializable
+data class FlatAddResult(
+    val status: String = "",
+    val uuid: String? = null,
+    val token: String? = null
+)
+
+/** 获取客户端令牌响应（WithFlat：{status, token}） */
+@Serializable
+data class FlatTokenResult(
+    val status: String = "",
+    val token: String? = null
+)

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -74,6 +75,7 @@ import java.util.Locale
 fun NodeListScreen(
     serverId: String,
     onBack: () -> Unit,
+    onOpenAdmin: () -> Unit,
     onOpenNode: (nodeId: String, name: String) -> Unit
 ) {
     val context = LocalContext.current
@@ -141,6 +143,11 @@ fun NodeListScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenAdmin) {
+                        Icon(Icons.Default.Settings, contentDescription = "管理")
                     }
                 }
             )

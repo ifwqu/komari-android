@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -102,7 +103,7 @@ fun ServerListScreen(
         }
     ) { padding ->
         if (servers.isEmpty()) {
-            EmptyServers(Modifier.padding(padding).fillMaxSize())
+            EmptyServers(Modifier.padding(padding).fillMaxSize(), onAdd = onAddServer)
         } else {
             LazyColumn(
                 Modifier.padding(padding).fillMaxSize(),
@@ -143,16 +144,22 @@ fun ServerListScreen(
 }
 
 @Composable
-private fun EmptyServers(modifier: Modifier = Modifier) {
+private fun EmptyServers(modifier: Modifier = Modifier, onAdd: () -> Unit) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("还没有配置服务器", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             Text(
-                "点击右下角 + 添加你的 Komari 服务器地址与账号",
+                "添加你的 Komari 服务器地址与账号即可开始监控",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray
             )
+            Spacer(Modifier.height(20.dp))
+            Button(onClick = onAdd) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("添加服务器")
+            }
         }
     }
 }
